@@ -1,6 +1,6 @@
 {
   "original": "W25Q64FV@SOIC8_butreallySOIC16_AHB7804R-LM-V3.BIN",
-  "modified": "/media/nfsroot/AHB7804R-V3-FW-dump-with-mods/live-fw-dump/full_spi_nor_dump.bin",
+  "modified": "live-fw-dump.bin",
   "diffCount": 8409,
   "patches": [
     {
