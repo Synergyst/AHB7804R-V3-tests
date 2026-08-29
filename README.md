@@ -1,57 +1,46 @@
 # AHB7804R-V3 FW Modification Toolkit
 
-This toolkit provides a non-destructive way to analyze the differences between a stock AHB7804R-V3 firmware dump and a modified live dump, and to apply those differences to create new, flashable binary images.
+This toolkit provides a comprehensive suite of tools for analyzing, modifying, and deploying firmware on the AHB7804R-V3 NVR. It allows for non-destructive analysis of firmware dumps and the creation of flashable binaries for SPI NOR programmers (such as XGecu).
 
-## Overview
+## Repository Overview
 
-The toolkit is designed for reverse engineers and firmware modders who need to move modifications from a live system (captured via NFS/mtd) back into a flashable binary for use with SPI NOR programmers (such as XGecu).
+### 🛠️ Binary Modification Tools
+These tools allow you to move modifications from a live system back into a flashable binary without needing to unpack the entire filesystem.
 
-### Key Features
-- **Non-Destructive**: All analysis is performed in a read-only fashion.
-- **Binary Precision**: Uses a JSON-based patch system to record exact offsets and byte sequences.
-- **Safety Checks**: Prevents accidental overwriting of existing firmware dumps.
-- **No Dependencies**: Built using standard Bash and Node.js (standard library) to avoid dependency hell.
+- **`toolkit.sh`**: The main CLI wrapper for binary analysis and patching.
+- **`bin-diff.js`**: Analyzes differences between two binaries and generates a JSON-based patch blueprint.
+- **`bin-patch.js`**: Applies a JSON patch blueprint to a stock binary to create a new flashable image.
 
-## Usage
-
-The main entry point is `toolkit.sh`.
-
-### 1. Analyze and Create a Patch
-Use the `compare` command to compare a stock binary against a modded (live) binary. This generates a `mods.json` file containing the binary delta.
-
+**Usage:**
 ```bash
-./toolkit.sh compare <original_stock.bin> <live_dump.bin> <output_patch.json>
+# Create a patch from a stock dump and a live dump
+./toolkit.sh compare <stock.bin> <live_dump.bin> <mods.json>
+
+# Apply that patch to a clean stock image to create a flashable binary
+./toolkit.sh patch <stock_bin> <mods.json> <flashable_output.bin>
 ```
 
-**Example:**
-```bash
-./toolkit.sh compare stock_fw.bin live_dump.bin my_mods.json
-```
+### 📡 Live Capture & Deployment
+Tools used to interact with the device in real-time and extract data.
 
-### 2. Generate a Flashable Binary
-Use the `patch` command to apply a previously generated patch file to a stock binary. This creates a new binary that can be programmed directly to the SPI NOR chip.
+- **`capture.sh`**: A telnet-based automation script that mounts NFS on the NVR and launches the frame streaming pipeline.
+- **`transfer-rsh.expect`**: An Expect script used to push binary files (like `rsh`) to the NVR via telnet using `cat > file` to bypass the lack of SCP/FTP.
+- **`frame_stream_tcp.cpp`**: A high-performance frame grabber that reads raw video buffers from physical memory (`/dev/mem`) and streams them over TCP.
+- **`sofia_wdt_supervisor.cpp`**: A "Watchdog Mitigation Wrapper" that pulses the Sofia process (SIGCONT/SIGSTOP) to prevent Hardware Watchdog Timer (WDT) trips during heavy I/O.
 
-```bash
-./toolkit.sh patch <stock_bin> <patch_json> <output_bin>
-```
-
-**Example:**
-```bash
-./toolkit.sh patch stock_fw.bin my_mods.json flash_me.bin
-```
+### 🏗️ Build & Maintenance
+- **`build-new-flash-image.sh`**: A script to rebuild the SquashFS partition and inject it back into the firmware binary at the correct offset.
+- **`rsh.c`**: Source for a minimal remote shell utility.
 
 ## Technical Details
 
-### Patch Format
-The toolkit generates a JSON file consisting of "patch segments". Each segment contains:
-- `offset`: The byte position in the binary where the change starts.
-- `length`: The number of bytes being modified.
-- `old`: The original hex bytes (for verification).
-- `new`: The replacement hex bytes.
+### Firmware Layout
+The SPI NOR flash is partitioned into several areas. The primary OS resides in a SquashFS partition starting at offset `0x30000` (196608 bytes).
 
 ### Requirements
-- **Bash**
-- **Node.js** (Version 12+)
+- **Host System**: Linux (with `mount` and `loop` support).
+- **Runtime**: Node.js (v12+), Bash, Expect.
+- **Hardware**: SPI NOR Programmer (e.g., XGecu) for flashing the generated `.bin` files.
 
 ## Disclaimer
 Modifying firmware can brick your device. Always ensure you have a verified backup of your original SPI NOR dump before flashing any modified binaries.
