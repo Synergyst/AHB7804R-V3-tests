@@ -1,0 +1,55 @@
+#!/usr/bin/expect -f
+# Adjust timeout as needed (here, we wait indefinitely for each prompt)
+set timeout -1
+
+# Spawn telnet (use -8 if available to force 8-bit mode; your telnet client might need -E)
+spawn telnet -8 192.168.168.10 23
+
+# Wait for login prompt
+expect "login:"
+send "root\r"
+
+sleep 2
+
+# Wait for password prompt
+expect "Password:"
+send "xc3511\r"
+
+sleep 5
+
+# Wait for shell prompt (adjust the prompt match if needed)
+expect {
+    -re {[#>] $} {}
+    timeout { puts "Timed out waiting for shell prompt"; exit 1 }
+}
+
+sleep 5
+
+# Issue the command to prepare for file reception.
+# Use the full path if necessary, here we assume busybox provides cat.
+send "cat > /var/rsh.out\r"
+
+# Optionally, wait a moment to ensure the command is accepted
+sleep 2
+
+# Open the binary file on the host (adjust filename as needed)
+set fd [open "rsh.out" rb]
+fconfigure $fd -translation binary
+set data [read $fd]
+close $fd
+
+# Send the binary data to the telnet session.
+# The "send --" ensures no interpretation of special characters.
+send -- $data
+
+# Optionally, send an EOF (Ctrl-D) if your receiver requires it.
+# Note: Some BusyBox shells will treat ^D as end-of-file on cat's stdin.
+send "\004"
+
+# Wait a few seconds for the transfer to complete and for any shell prompt
+sleep 2
+expect {
+    -re {[#>] $} { send "exit\r" }
+}
+
+expect eof
