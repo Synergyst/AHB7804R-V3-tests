@@ -32,6 +32,29 @@ Tools used to interact with the device in real-time and extract data.
 - **`build-new-flash-image.sh`**: A script to rebuild the SquashFS partition and inject it back into the firmware binary at the correct offset.
 - **`rsh.c`**: Source for a minimal remote shell utility.
 
+## 🔨 Build Instructions
+
+The binaries for the NVR must be cross-compiled for the ARM target. Use the following toolchain settings based on the target architecture.
+
+### Cross-Compilation Command
+To compile the C/C++ tools (such as `rsh.c`, `frame_stream_tcp.cpp`, or `sofia_wdt_supervisor.cpp`), use the `arm-linux-gnueabi-gcc` (or `g++`) compiler with the following flags:
+
+```bash
+arm-linux-gnueabi-gcc -Os -march=armv7-a -mtune=cortex-a8 \
+  -mfloat-abi=soft -flto -fdata-sections -ffunction-sections \
+  -Wl,--gc-sections -static -s -o <output_bin> <source_file>
+```
+
+**Example for `rsh.c`:**
+```bash
+arm-linux-gnueabi-gcc -Os -march=armv7-a -mtune=cortex-a8 -mfloat-abi=soft -flto -fdata-sections -ffunction-sections -Wl,--gc-sections -static -s -o rsh.out rsh.c
+```
+
+**Example for `frame_stream_tcp.cpp`:**
+```bash
+arm-linux-gnueabi-g++ -Os -march=armv7-a -mtune=cortex-a8 -mfloat-abi=soft -flto -fdata-sections -ffunction-sections -Wl,--gc-sections -static -s -o frame_stream_tcp frame_stream_tcp.cpp
+```
+
 ## Technical Details
 
 ### Firmware Layout
@@ -40,6 +63,7 @@ The SPI NOR flash is partitioned into several areas. The primary OS resides in a
 ### Requirements
 - **Host System**: Linux (with `mount` and `loop` support).
 - **Runtime**: Node.js (v12+), Bash, Expect.
+- **Toolchain**: `arm-linux-gnueabi-gcc` / `g++`.
 - **Hardware**: SPI NOR Programmer (e.g., XGecu) for flashing the generated `.bin` files.
 
 ## Disclaimer
